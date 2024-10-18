@@ -1,3 +1,10 @@
+/*
+design by Voicu Apostol.
+design: https://dribbble.com/shots/3533847-Mini-Music-Player
+I can't find any open music api or mp3 api so i have to download all musics as mp3 file.
+You can fork on github: https://github.com/muhammederdem/mini-player
+*/
+
 new Vue({
   el: "#app",
   data() {
@@ -182,30 +189,64 @@ new Vue({
       ].favorited;
     }
   },
-  created() {
-    let vm = this;
-    this.currentTrack = this.tracks[0];
-    this.audio = new Audio();
-    this.audio.src = this.currentTrack.source;
-    this.audio.ontimeupdate = function() {
-      vm.generateTime();
-    };
-    this.audio.onloadedmetadata = function() {
-      vm.generateTime();
-    };
-    this.audio.onended = function() {
-      vm.nextTrack();
-      this.isTimerPlaying = true;
-    };
+ created() {
+  let vm = this;
+  this.currentTrack = this.tracks[0];
+  this.audio = new Audio();
+  this.audio.src = this.currentTrack.source;
+  this.audio.ontimeupdate = function() {
+    vm.generateTime();
+  };
+  this.audio.onloadedmetadata = function() {
+    vm.generateTime();
+  };
+  this.audio.onended = function() {
+    vm.nextTrack();
+    this.isTimerPlaying = true;
+  };
 
-    // this is optional (for preload covers)
-    for (let index = 0; index < this.tracks.length; index++) {
-      const element = this.tracks[index];
-      let link = document.createElement('link');
-      link.rel = "prefetch";
-      link.href = element.cover;
-      link.as = "image"
-      document.head.appendChild(link)
-    }
+  // 假设你已经有了一个有效的 song 变量
+    const params = new URLSearchParams(window.location.search.substring(1));
+    const song=params.get("song");
+
+  // 发送 API 请求
+  fetch(`https://dg.slwu19.workers.dev/?song=${song}`)
+    .then(response => response.json())
+    .then(data => {
+      // 解析 API 响应
+      const newTrack = {
+        name: data.song_name,
+        artist: data.song_singer,
+        cover: data.cover,
+        source: data.music_url,
+        url: data.link,
+        favorited: false
+      };
+
+      // 将新曲目插入到 tracks 的第一个位置
+      vm.tracks.unshift(newTrack);
+
+      // 更新当前曲目为新插入的曲目
+      vm.currentTrack = vm.tracks[0];
+
+      // 设置音频对象的源
+      vm.audio.src = vm.currentTrack.source;
+
+      // 播放新曲目
+      vm.audio.play();
+    })
+    .catch(error => {
+      console.error('Error fetching data:', error);
+    });
+
+  // 预加载封面图像
+  for (let index = 0; index < this.tracks.length; index++) {
+    const element = this.tracks[index];
+    let link = document.createElement('link');
+    link.rel = "prefetch";
+    link.href = element.cover;
+    link.as = "image";
+    document.head.appendChild(link);
   }
+}
 });
